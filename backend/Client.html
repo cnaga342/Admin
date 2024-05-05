@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Side</title>
+</head>
+<body>
+  <h1>Client Side Code</h1>
+  
+  <h2>Registration</h2>
+  <label for="registerEmail">Email:</label>
+  <input type="email" id="registerEmail" name="registerEmail">
+  <label for="registerPassword">Password:</label>
+  <input type="password" id="registerPassword" name="registerPassword">
+  <button id="registerBtn">Register</button>
+  
+  <h2>Login</h2>
+  <label for="loginEmail">Email:</label>
+  <input type="email" id="loginEmail" name="loginEmail">
+  <label for="loginPassword">Password:</label>
+  <input type="password" id="loginPassword" name="loginPassword">
+  <button id="loginBtn">Login</button>
+  
+  <button id="protectedBtn">Access Protected Route</button>
+
+  <div id="activities"></div> <!-- Display activities here -->
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+  <script>
+    // Establish WebSocket connection with the server
+    const socket = io('http://localhost:3000');
+
+    // Display a message when the socket connection is established
+    socket.on('connect', () => {
+      console.log('Socket connection established');
+      alert('Socket connection established');
+    });
+
+    // Display activities when received from the server
+    socket.on('newActivity', (activity) => {
+      const activitiesDiv = document.getElementById('activities');
+      activitiesDiv.innerHTML += `<p>${activity.userEmail} - ${activity.activityType} - ${activity.timestamp}</p>`;
+    });
+
+    // Register a new user
+    document.getElementById('registerBtn').addEventListener('click', async (event) => {
+      event.preventDefault(); // Prevent default form submission behavior
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      try {
+        const response = await axios.post('http://localhost:3000/register', { email, password });
+        console.log('Registration successful:', response.data);
+      } catch (error) {
+        console.error('Registration error:', error.response.data);
+      }
+    });
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const response = await axios.post('http://localhost:3000/login', { email, password });
+        console.log('Login successful:', response.data);
+        // Display welcome message and user's activity
+        const activitiesDiv = document.getElementById('activities');
+        activitiesDiv.innerHTML = `<p>Welcome, ${email}!</p>`;
+        // Store the token for future requests
+        const token = response.data.token;
+        localStorage.setItem('token', token);
+      } catch (error) {
+        console.error('Login error:', error.response.data);
+      }
+    });
+
+    // Access protected route
+    document.getElementById('protectedBtn').addEventListener('click', async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token available. Please login first.');
+        return;
+      }
+      try {
+        const response = await axios.get('http://localhost:3000/protected', {
+          headers: {
+            Authorization: token
+          }
+        });
+        console.log('Protected route accessed:', response.data);
+      } catch (error) {
+        console.error('Error accessing protected route:', error.response.data);
+      }
+    });
+  </script>
+</body>
+</html>
